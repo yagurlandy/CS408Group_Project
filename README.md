@@ -1,4 +1,4 @@
-# Go Hello World – Tech Stack Survey
+# Go Hello World – Tech Stack
 
 This project is a minimal full-stack “Hello World” web application built in Go as part of the **03.02 Tech Stack Survey** assignment.  
 It demonstrates server-side rendering, basic routing, UI styling, testing, and debugging using Go’s standard library.
