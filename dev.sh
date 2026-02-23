@@ -19,35 +19,56 @@ load_env() {
 }
 
 cmd_new() {
-  [ ! -f .env ] || die ".env already exists (delete it to recreate)."
+  if [ -f .env ]; then
+    die ".env already exists (delete it if you want to recreate)."
+  fi
+
   require_file "docker-compose-template.yml"
 
-  echo "EC2 public IP (example: 35.90.193.142):"
-  read -r EC2_DEPLOY_HOST
-  [ -n "$EC2_DEPLOY_HOST" ] || die "EC2 public IP required."
-
-  echo "EC2 SSH key filename in ~/.ssh (example: aws-AndyLopezmartine.pem):"
-  read -r EC2_KEY_NAME
-  [ -n "$EC2_KEY_NAME" ] || die "EC2 key name required."
-  [ -f "$HOME/.ssh/$EC2_KEY_NAME" ] || die "Key not found at $HOME/.ssh/$EC2_KEY_NAME"
+  echo "This will create a new .env file for your application."
+  echo "Are you deploying to an AWS EC2 instance? (y/n  default: y)"
+  read -r has_ec2
+  if [ "$has_ec2" = "" ]; then has_ec2="y"; fi
 
   APP_NAME="$(basename "$PWD" | tr ' ' '-')"
   EC2_DEPLOY_DIR="/home/ubuntu/${APP_NAME}"
 
+  if [[ "$has_ec2" =~ ^[Yy]$ ]]; then
+    echo "EC2 public IP (example: 35.90.193.142):"
+    read -r EC2_DEPLOY_HOST
+    [ -n "$EC2_DEPLOY_HOST" ] || die "EC2 public IP required."
+
+    echo "EC2 SSH key filename (example: aws-AndyLopezmartine.pem)."
+    echo "NOTE: This file is expected on the machine you deploy FROM (usually your Mac), not on EC2."
+    read -r EC2_KEY_NAME
+    [ -n "$EC2_KEY_NAME" ] || die "EC2 key name required."
+  else
+    EC2_DEPLOY_HOST="localhost"
+    EC2_KEY_NAME="none"
+  fi
+
   cat > .env <<EOF
+APP_NAME=${APP_NAME}
 EC2_DEPLOY_HOST=${EC2_DEPLOY_HOST}
 EC2_KEY_NAME=${EC2_KEY_NAME}
 EC2_DEPLOY_DIR=${EC2_DEPLOY_DIR}
 EOF
 
   cp docker-compose-template.yml docker-compose.yml
-  ok ".env created"
-  ok "docker-compose.yml generated"
-  echo "Next: ./dev.sh deploy"
+
+  ok ".env file created."
+  ok "Generated docker-compose.yml from template."
+  ok "New dev environment setup complete."
+  echo "Run './dev.sh install' on EC2 OR './dev.sh deploy' from your Mac."
 }
 
 cmd_deploy() {
   load_env
+
+if [ ! -f docker-compose.yml ]; then
+  cp docker-compose-template.yml docker-compose.yml
+fi
+
   require_file "docker-compose.yml"
   require_file "Dockerfile"
 
@@ -57,8 +78,7 @@ cmd_deploy() {
   ssh -o StrictHostKeyChecking=no -i "$HOME/.ssh/$EC2_KEY_NAME" "ubuntu@${EC2_DEPLOY_HOST}" '
     set -e
     sudo apt update
-    sudo apt install -y docker.io docker-compose-plugin rsync
-    sudo systemctl enable docker
+    sudo apt install -y docker.io docker-compose-plugin    sudo systemctl enable docker
     sudo systemctl start docker
   '
 
@@ -84,5 +104,6 @@ cmd_deploy() {
 case "$CMD" in
   new) cmd_new ;;
   deploy) cmd_deploy ;;
-  *) echo "Usage: ./dev.sh new | ./dev.sh deploy" ; exit 1 ;;
+  install) cmd_install ;;
+  *) echo "Usage: ./dev.sh new | ./dev.sh deploy | ./dev.sh install" ; exit 1 ;;
 esac
