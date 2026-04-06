@@ -30,11 +30,11 @@ COPY static ./static
 RUN mkdir -p /app/data
 
 # Expose port
-EXPOSE 3000
+EXPOSE 8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget -q -O /dev/null http://localhost:3000/ || exit 1
+  CMD wget -q -O /dev/null http://localhost:8080/ || exit 1
 
 # Run the Go application
 CMD ["./planit"]

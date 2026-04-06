@@ -1,0 +1,27 @@
+# macOS
+.DS_Store
+
+# env files
+.env
+
+# logs
+*.log
+
+# Go
+bin/
+*.test
+coverage.out
+
+# node
+node_modules/
+playwright-report/
+test-results/
+
+# SQLite / local app data
+app/data/*.sqlite
+app/data/*.db
+app/data/*.sqlite-shm
+app/data/*.sqlite-wal
+
+# keep folder, ignore contents if needed
+!app/data/.gitkeep
