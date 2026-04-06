@@ -1,0 +1,17 @@
+{
+  "name": "planit",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "go run .",
+    "start:prod": "APP_ENV=production go run .",
+    "test:go": "go test ./...",
+    "test:setup": "npx playwright install --with-deps",
+    "test:e2e": "cross-env APP_ENV=test playwright test",
+    "test": "npm run test:e2e"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.0",
+    "cross-env": "^10.1.0"
+  }
+}

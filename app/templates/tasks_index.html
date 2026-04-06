@@ -1,0 +1,137 @@
+{{define "content"}}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="text-white mb-0">
+    <i class="bi bi-list-check me-2"></i>My Tasks
+  </h2>
+  <a href="/tasks/new" class="btn btn-primary">
+    <i class="bi bi-plus-lg me-1"></i>New Task
+  </a>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+  <div class="card-body">
+    <form method="GET" action="/tasks" class="row g-2 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label small text-muted mb-1">
+          <i class="bi bi-folder2 me-1"></i>Plan
+        </label>
+        <select name="plan_id" class="form-select form-select-sm">
+          <option value="">All Plans</option>
+          {{range .Plans}}
+          <option value="{{.ID}}" {{if eq $.Filters.PlanID (printf "%d" .ID)}}selected{{end}}>{{.Title}}</option>
+          {{end}}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small text-muted mb-1">
+          <i class="bi bi-arrow-repeat me-1"></i>Status
+        </label>
+        <select name="status" class="form-select form-select-sm">
+          <option value="">All Statuses</option>
+          <option value="not_started" {{if eq .Filters.Status "not_started"}}selected{{end}}>Not Started</option>
+          <option value="in_progress"  {{if eq .Filters.Status "in_progress"}}selected{{end}}>In Progress</option>
+          <option value="completed"    {{if eq .Filters.Status "completed"}}selected{{end}}>Completed</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label small text-muted mb-1">
+          <i class="bi bi-tag me-1"></i>Category
+        </label>
+        <select name="category" class="form-select form-select-sm">
+          <option value="">All Categories</option>
+          {{range .Categories}}
+          <option value="{{.}}" {{if eq $.Filters.Category .}}selected{{end}}>{{.}}</option>
+          {{end}}
+        </select>
+      </div>
+      <div class="col-md-3 d-flex gap-2">
+        <button type="submit" class="btn btn-primary btn-sm">
+          <i class="bi bi-funnel me-1"></i>Filter
+        </button>
+        <a href="/tasks" class="btn btn-outline-secondary btn-sm">
+          <i class="bi bi-x-lg me-1"></i>Clear
+        </a>
+      </div>
+    </form>
+  </div>
+</div>
+
+{{if not .Tasks}}
+<div class="card text-center py-5">
+  <div class="card-body text-muted">
+    {{if or .Filters.PlanID .Filters.Status .Filters.Category}}
+    <i class="bi bi-funnel display-4 d-block mb-3 opacity-50"></i>
+    <h5>No tasks match your filters</h5>
+    <p>Try adjusting or clearing your filters.</p>
+    <a href="/tasks" class="btn btn-outline-secondary me-2">
+      <i class="bi bi-x-lg me-1"></i>Clear Filters
+    </a>
+    {{else}}
+    <i class="bi bi-clipboard2-check display-4 d-block mb-3 opacity-50"></i>
+    <h5>No tasks yet</h5>
+    <p>Create your first task to get started.</p>
+    {{end}}
+    <a href="/tasks/new" class="btn btn-primary">
+      <i class="bi bi-plus-lg me-1"></i>Create a Task
+    </a>
+  </div>
+</div>
+{{else}}
+<div class="card">
+  <ul class="list-group list-group-flush">
+    {{range .Tasks}}
+    <li class="list-group-item py-3 {{if eq .Status "completed"}}task-completed{{end}}">
+      <div class="d-flex justify-content-between align-items-start">
+        <div class="flex-grow-1">
+          <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+            <a href="/tasks/{{.ID}}" class="fw-semibold text-decoration-none task-title">{{.Title}}</a>
+            <span class="badge bg-{{statusBadge .Status}}">
+              <i class="bi {{statusIcon .Status}} me-1"></i>{{statusLabel .Status}}
+            </span>
+            {{if .Category}}
+            <span class="badge bg-light text-secondary border">
+              <i class="bi bi-tag me-1"></i>{{.Category}}
+            </span>
+            {{end}}
+          </div>
+          {{if .PlanTitle}}
+          <small class="text-muted">
+            <i class="bi bi-folder2 me-1"></i>{{.PlanTitle}}
+          </small>
+          {{end}}
+          {{if .Notes}}<p class="text-muted small mb-0 mt-1">{{.Notes}}</p>{{end}}
+        </div>
+        <div class="d-flex align-items-center gap-2 ms-3 flex-shrink-0">
+          {{if .DueDate}}
+            {{if isOverdue .DueDate .Status}}
+            <span class="badge rounded-pill bg-danger">
+              <i class="bi bi-exclamation-triangle-fill me-1"></i>{{formatDate .DueDate}}
+            </span>
+            {{else if isDueSoon .DueDate .Status}}
+            <span class="badge rounded-pill due-soon">
+              <i class="bi bi-hourglass-split me-1"></i>{{formatDate .DueDate}}
+            </span>
+            {{else}}
+            <span class="badge rounded-pill bg-light text-muted border">
+              <i class="bi bi-calendar3 me-1"></i>{{formatDate .DueDate}}
+            </span>
+            {{end}}
+          {{end}}
+          <a href="/tasks/{{.ID}}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-eye"></i>
+          </a>
+          <form action="/tasks/{{.ID}}/delete" method="POST"
+                onsubmit="return confirm('Delete this task?')">
+            <button type="submit" class="btn btn-sm btn-outline-danger">
+              <i class="bi bi-trash3"></i>
+            </button>
+          </form>
+        </div>
+      </div>
+    </li>
+    {{end}}
+  </ul>
+</div>
+{{end}}
+{{end}}
