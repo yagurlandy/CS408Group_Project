@@ -51,6 +51,7 @@ type TaskFilters struct {
 	PlanID   string
 	Status   string
 	Category string
+	Overdue  string
 }
 
 // New opens (or creates) the SQLite database at dbPath and runs migrations.
@@ -259,6 +260,10 @@ func (db *DB) GetAllTasks(f TaskFilters) ([]Task, error) {
 		query += " AND t.category = ?"
 		args = append(args, f.Category)
 	}
+	if f.Overdue == "1" {
+		query += " AND t.due_date < date('now') AND t.status != 'completed' AND t.due_date != ''"
+	}
+
 	query += " ORDER BY CASE WHEN t.due_date = '' THEN 1 ELSE 0 END, t.due_date ASC, t.created_at DESC"
 
 	rows, err := db.conn.Query(query, args...)

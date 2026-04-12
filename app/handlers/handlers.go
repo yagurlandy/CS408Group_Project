@@ -256,6 +256,7 @@ func (h *Handler) tasksIndex(w http.ResponseWriter, r *http.Request) {
 		PlanID:   r.URL.Query().Get("plan_id"),
 		Status:   r.URL.Query().Get("status"),
 		Category: r.URL.Query().Get("category"),
+		Overdue:  r.URL.Query().Get("overdue"),
 	}
 	tasks, _ := h.db.GetAllTasks(filters)
 	plans, _ := h.db.GetAllPlans()
