@@ -1,5 +1,7 @@
 # PlanIT – Full Stack Go Task Manager
 
+![CI](https://github.com/yagurlandy/CS408Group_Project/actions/workflows/ci.yml/badge.svg)
+
 This project is a full-stack web application built in Go for **CS 408**. It allows users to organize tasks into plans, track progress, view deadlines, and manage work through a clean server-rendered interface.
 
 The application runs locally on port **8080** and is deployed on AWS EC2 at **http://35.90.193.142/**.
@@ -133,22 +135,28 @@ The dashboard displays:
 
 ## Testing
 
-### Go tests
+### Go unit tests
 
 `cd app && go test ./...`
 
-### Playwright tests
+Tests cover all database operations: create, retrieve, update, delete for both plans and tasks, filtering, stats, and seed/clear helpers.
 
-`cd app && npm install && npx playwright install && npm test`
+### Playwright end-to-end tests
 
-The automated tests verify:
-- landing page loads correctly
-- navigation links are present
-- plans page renders
-- tasks page renders
-- forms are visible
-- dashboard displays
-- 404 page works for unknown routes
+`cd app && npm install && npx playwright install chromium && npx playwright test`
+
+The e2e tests verify:
+- landing page loads with correct title and heading
+- navigation links are present (Plans, Tasks, Dashboard)
+- call-to-action buttons link to create plan and create task forms
+- plans page renders and create plan form works end-to-end
+- tasks page renders with filter controls
+- dashboard displays stats
+- 404 page returns HTTP 404 for unknown routes
+
+### CI
+
+GitHub Actions runs both test suites on every push and pull request. The workflow is defined in [.github/workflows/ci.yml](.github/workflows/ci.yml). Playwright reports are uploaded as artifacts on every run.
 
 ## Debugging
 
