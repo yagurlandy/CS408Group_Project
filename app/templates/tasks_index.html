@@ -122,7 +122,8 @@
             <i class="bi bi-eye"></i>
           </a>
           <form action="/tasks/{{.ID}}/delete" method="POST"
-                onsubmit="return confirm('Delete this task?')">
+                data-confirm="Delete this task?">
+            <input type="hidden" name="_csrf" value="{{$.CSRFToken}}">
             <button type="submit" class="btn btn-sm btn-outline-danger">
               <i class="bi bi-trash3"></i>
             </button>

@@ -15,6 +15,7 @@ import (
 type TemplateData struct {
 	Title         string
 	CurrentPath   string
+	CSRFToken     string
 	Plans         []database.Plan
 	Plan          *database.Plan
 	Tasks         []database.Task
@@ -143,13 +144,16 @@ func NewMux(db *database.DB) http.Handler {
 	// Catch-all 404
 	mux.HandleFunc("/", h.notFound)
 
-	return mux
+	return securityHeaders(csrfMiddleware(mux))
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 func (h *Handler) render(w http.ResponseWriter, r *http.Request, page string, data TemplateData) {
 	data.CurrentPath = r.URL.Path
+	if c, err := r.Cookie(csrfCookieName); err == nil {
+		data.CSRFToken = c.Value
+	}
 	t, err := template.New("").Funcs(h.funcMap).ParseFiles(
 		"templates/layout.html",
 		"templates/"+page+".html",
@@ -215,6 +219,14 @@ func (h *Handler) plansCreate(w http.ResponseWriter, r *http.Request) {
 
 	if title == "" {
 		h.render(w, r, "plans_new", TemplateData{Title: "Create Plan", Error: "Title is required."})
+		return
+	}
+	if len(title) > 200 {
+		h.render(w, r, "plans_new", TemplateData{Title: "Create Plan", Error: "Title must be 200 characters or fewer."})
+		return
+	}
+	if len(description) > 1000 {
+		h.render(w, r, "plans_new", TemplateData{Title: "Create Plan", Error: "Description must be 1000 characters or fewer."})
 		return
 	}
 	if _, err := h.db.CreatePlan(title, description); err != nil {
@@ -295,6 +307,22 @@ func (h *Handler) tasksCreate(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+	if len(title) > 200 {
+		plans, _ := h.db.GetAllPlans()
+		h.render(w, r, "tasks_new", TemplateData{Title: "Create Task", Plans: plans, Error: "Title must be 200 characters or fewer."})
+		return
+	}
+	if len(notes) > 2000 {
+		plans, _ := h.db.GetAllPlans()
+		h.render(w, r, "tasks_new", TemplateData{Title: "Create Task", Plans: plans, Error: "Notes must be 2000 characters or fewer."})
+		return
+	}
+	validStatuses := map[string]bool{"not_started": true, "in_progress": true, "completed": true}
+	if status != "" && !validStatuses[status] {
+		plans, _ := h.db.GetAllPlans()
+		h.render(w, r, "tasks_new", TemplateData{Title: "Create Task", Plans: plans, Error: "Invalid status value."})
+		return
+	}
 	if _, err := h.db.CreateTask(planID, title, notes, category, status, dueDate); err != nil {
 		plans, _ := h.db.GetAllPlans()
 		h.render(w, r, "tasks_new", TemplateData{
@@ -329,7 +357,13 @@ func (h *Handler) taskUpdateStatus(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Bad Request", http.StatusBadRequest)
 		return
 	}
-	h.db.UpdateTaskStatus(id, r.FormValue("status"))
+	status := r.FormValue("status")
+	validStatuses := map[string]bool{"not_started": true, "in_progress": true, "completed": true}
+	if !validStatuses[status] {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+	h.db.UpdateTaskStatus(id, status)
 	http.Redirect(w, r, "/tasks/"+r.PathValue("id"), http.StatusSeeOther)
 }
 

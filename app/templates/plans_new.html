@@ -15,6 +15,7 @@
         </div>
         {{end}}
         <form action="/plans" method="POST">
+          <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
           <div class="mb-3">
             <label for="title" class="form-label fw-semibold">
               <i class="bi bi-fonts me-1 text-muted"></i>Plan Title

@@ -26,6 +26,7 @@
         {{end}}
 
         <form action="/tasks" method="POST">
+          <input type="hidden" name="_csrf" value="{{.CSRFToken}}">
           <div class="mb-3">
             <label for="title" class="form-label fw-semibold">
               <i class="bi bi-fonts me-1 text-muted"></i>Task Title
