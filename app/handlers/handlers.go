@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"html/template"
 	"log"
 	"net/http"
@@ -111,7 +112,7 @@ func NewMux(db *database.DB) http.Handler {
 				return completed * 100 / total
 			},
 			"hasPrefix": strings.HasPrefix,
-			"eq":        func(a, b string) bool { return a == b },
+			"eq":        func(a, b any) bool { return a == b },
 		},
 	}
 
@@ -132,6 +133,7 @@ func NewMux(db *database.DB) http.Handler {
 	mux.HandleFunc("POST /plans", h.plansCreate)
 	mux.HandleFunc("GET /plans/{id}", h.planShow)
 	mux.HandleFunc("POST /plans/{id}/delete", h.planDelete)
+	mux.HandleFunc("POST /plans/quick", h.plansQuickCreate)
 
 	// Tasks — /tasks/new must be registered before /tasks/{id}
 	mux.HandleFunc("GET /tasks", h.tasksIndex)
@@ -236,6 +238,30 @@ func (h *Handler) plansCreate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	http.Redirect(w, r, "/plans", http.StatusSeeOther)
+}
+
+func (h *Handler) plansQuickCreate(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
+		return
+	}
+	title := strings.TrimSpace(r.FormValue("title"))
+	description := strings.TrimSpace(r.FormValue("description"))
+	if title == "" || len(title) > 200 {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Title is required and must be 200 characters or fewer."})
+		return
+	}
+	id, err := h.db.CreatePlan(title, description)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Failed to create plan."})
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]any{"id": id, "title": title})
 }
 
 func (h *Handler) planShow(w http.ResponseWriter, r *http.Request) {
