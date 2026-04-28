@@ -138,6 +138,8 @@ func NewMux(db *database.DB) http.Handler {
 	mux.HandleFunc("GET /tasks/new", h.tasksNew)
 	mux.HandleFunc("POST /tasks", h.tasksCreate)
 	mux.HandleFunc("GET /tasks/{id}", h.taskShow)
+	mux.HandleFunc("GET /tasks/{id}/edit", h.tasksEdit)
+	mux.HandleFunc("POST /tasks/{id}/edit", h.tasksUpdate)
 	mux.HandleFunc("POST /tasks/{id}/status", h.taskUpdateStatus)
 	mux.HandleFunc("POST /tasks/{id}/delete", h.taskDelete)
 
@@ -345,6 +347,73 @@ func (h *Handler) taskShow(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.render(w, r, "tasks_show", TemplateData{Title: task.Title, Task: task})
+}
+
+func (h *Handler) tasksEdit(w http.ResponseWriter, r *http.Request) {
+	id, err := parseID(r)
+	if err != nil {
+		h.notFound(w, r)
+		return
+	}
+	task, err := h.db.GetTaskByID(id)
+	if err != nil || task == nil {
+		h.notFound(w, r)
+		return
+	}
+	plans, _ := h.db.GetAllPlans()
+	h.render(w, r, "tasks_edit", TemplateData{Title: "Edit Task", Task: task, Plans: plans})
+}
+
+func (h *Handler) tasksUpdate(w http.ResponseWriter, r *http.Request) {
+	id, err := parseID(r)
+	if err != nil {
+		h.notFound(w, r)
+		return
+	}
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+	planIDStr := r.FormValue("plan_id")
+	title := strings.TrimSpace(r.FormValue("title"))
+	notes := strings.TrimSpace(r.FormValue("notes"))
+	category := r.FormValue("category")
+	status := r.FormValue("status")
+	dueDate := r.FormValue("due_date")
+
+	planID, err := strconv.ParseInt(planIDStr, 10, 64)
+	if title == "" || err != nil {
+		plans, _ := h.db.GetAllPlans()
+		task, _ := h.db.GetTaskByID(id)
+		h.render(w, r, "tasks_edit", TemplateData{Title: "Edit Task", Task: task, Plans: plans, Error: "Title and plan are required."})
+		return
+	}
+	if len(title) > 200 {
+		plans, _ := h.db.GetAllPlans()
+		task, _ := h.db.GetTaskByID(id)
+		h.render(w, r, "tasks_edit", TemplateData{Title: "Edit Task", Task: task, Plans: plans, Error: "Title must be 200 characters or fewer."})
+		return
+	}
+	if len(notes) > 2000 {
+		plans, _ := h.db.GetAllPlans()
+		task, _ := h.db.GetTaskByID(id)
+		h.render(w, r, "tasks_edit", TemplateData{Title: "Edit Task", Task: task, Plans: plans, Error: "Notes must be 2000 characters or fewer."})
+		return
+	}
+	validStatuses := map[string]bool{"not_started": true, "in_progress": true, "completed": true}
+	if status != "" && !validStatuses[status] {
+		plans, _ := h.db.GetAllPlans()
+		task, _ := h.db.GetTaskByID(id)
+		h.render(w, r, "tasks_edit", TemplateData{Title: "Edit Task", Task: task, Plans: plans, Error: "Invalid status value."})
+		return
+	}
+	if err := h.db.UpdateTask(id, planID, title, notes, category, status, dueDate); err != nil {
+		plans, _ := h.db.GetAllPlans()
+		task, _ := h.db.GetTaskByID(id)
+		h.render(w, r, "tasks_edit", TemplateData{Title: "Edit Task", Task: task, Plans: plans, Error: "Failed to update task."})
+		return
+	}
+	http.Redirect(w, r, "/tasks/"+r.PathValue("id"), http.StatusSeeOther)
 }
 
 func (h *Handler) taskUpdateStatus(w http.ResponseWriter, r *http.Request) {

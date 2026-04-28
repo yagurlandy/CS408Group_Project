@@ -351,6 +351,18 @@ func (db *DB) UpdateTaskStatus(id int64, status string) error {
 	return err
 }
 
+// UpdateTask updates all editable fields of a task.
+func (db *DB) UpdateTask(id int64, planID int64, title, notes, category, status, dueDate string) error {
+	if status == "" {
+		status = "not_started"
+	}
+	_, err := db.conn.Exec(
+		`UPDATE tasks SET plan_id=?, title=?, notes=?, category=?, status=?, due_date=? WHERE id=?`,
+		planID, title, notes, category, status, dueDate, id,
+	)
+	return err
+}
+
 // DeleteTask removes a task by ID.
 func (db *DB) DeleteTask(id int64) error {
 	_, err := db.conn.Exec("DELETE FROM tasks WHERE id = ?", id)
