@@ -132,6 +132,8 @@ func NewMux(db *database.DB) http.Handler {
 	mux.HandleFunc("GET /plans/new", h.plansNew)
 	mux.HandleFunc("POST /plans", h.plansCreate)
 	mux.HandleFunc("GET /plans/{id}", h.planShow)
+	mux.HandleFunc("GET /plans/{id}/edit", h.plansEdit)
+	mux.HandleFunc("POST /plans/{id}/edit", h.plansUpdate)
 	mux.HandleFunc("POST /plans/{id}/delete", h.planDelete)
 	mux.HandleFunc("POST /plans/quick", h.plansQuickCreate)
 
@@ -277,6 +279,89 @@ func (h *Handler) planShow(w http.ResponseWriter, r *http.Request) {
 	}
 	tasks, _ := h.db.GetTasksByPlanID(id)
 	h.render(w, r, "plans_show", TemplateData{Title: plan.Title, Plan: plan, Tasks: tasks})
+}
+
+func (h *Handler) plansEdit(w http.ResponseWriter, r *http.Request) {
+	id, err := parseID(r)
+	if err != nil {
+		h.notFound(w, r)
+		return
+	}
+
+	plan, err := h.db.GetPlanByID(id)
+	if err != nil || plan == nil {
+		h.notFound(w, r)
+		return
+	}
+
+	h.render(w, r, "plans_edit", TemplateData{
+		Title: "Edit Plan",
+		Plan:  plan,
+	})
+}
+
+func (h *Handler) plansUpdate(w http.ResponseWriter, r *http.Request) {
+	id, err := parseID(r)
+	if err != nil {
+		h.notFound(w, r)
+		return
+	}
+
+	plan, err := h.db.GetPlanByID(id)
+	if err != nil || plan == nil {
+		h.notFound(w, r)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, "Bad Request", http.StatusBadRequest)
+		return
+	}
+
+	title := strings.TrimSpace(r.FormValue("title"))
+	description := strings.TrimSpace(r.FormValue("description"))
+
+	// Keep the attempted values in the form if validation fails.
+	plan.Title = title
+	plan.Description = description
+
+	if title == "" {
+		h.render(w, r, "plans_edit", TemplateData{
+			Title: "Edit Plan",
+			Plan:  plan,
+			Error: "Title is required.",
+		})
+		return
+	}
+
+	if len(title) > 200 {
+		h.render(w, r, "plans_edit", TemplateData{
+			Title: "Edit Plan",
+			Plan:  plan,
+			Error: "Title must be 200 characters or fewer.",
+		})
+		return
+	}
+
+	if len(description) > 1000 {
+		h.render(w, r, "plans_edit", TemplateData{
+			Title: "Edit Plan",
+			Plan:  plan,
+			Error: "Description must be 1000 characters or fewer.",
+		})
+		return
+	}
+
+	if err := h.db.UpdatePlan(id, title, description); err != nil {
+		h.render(w, r, "plans_edit", TemplateData{
+			Title: "Edit Plan",
+			Plan:  plan,
+			Error: "Failed to update plan.",
+		})
+		return
+	}
+
+	http.Redirect(w, r, "/plans", http.StatusSeeOther)
 }
 
 func (h *Handler) planDelete(w http.ResponseWriter, r *http.Request) {

@@ -60,6 +60,29 @@ test.describe('Plans', () => {
     await expect(page).toHaveURL('/plans');
     await expect(page.locator('body')).toContainText('Test Plan E2E');
   });
+
+  test('should edit an existing plan', async ({ page }) => {
+    await page.goto('/plans/new');
+
+    await page.fill('input[name="title"]', 'Plan Before Edit E2E');
+    await page.fill('textarea[name="description"]', 'Description before edit');
+    await page.click('button[type="submit"]');
+
+    await expect(page).toHaveURL('/plans');
+    await expect(page.locator('body')).toContainText('Plan Before Edit E2E');
+
+    await page.click('a[href*="/edit"]');
+    await expect(page).toHaveTitle(/Edit Plan/);
+    await expect(page.locator('form')).toBeVisible();
+
+    await page.fill('input[name="title"]', 'Plan After Edit E2E');
+    await page.fill('textarea[name="description"]', 'Description after edit');
+    await page.click('button[type="submit"]');
+
+    await expect(page).toHaveURL('/plans');
+    await expect(page.locator('body')).toContainText('Plan After Edit E2E');
+    await expect(page.locator('body')).toContainText('Description after edit');
+  });
 });
 
 test.describe('Tasks', () => {

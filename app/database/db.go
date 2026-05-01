@@ -229,6 +229,15 @@ func (db *DB) CreatePlan(title, description string) (int64, error) {
 	return r.LastInsertId()
 }
 
+// UpdatePlan updates the editable fields of a plan.
+func (db *DB) UpdatePlan(id int64, title, description string) error {
+	_, err := db.conn.Exec(
+		"UPDATE plans SET title = ?, description = ? WHERE id = ? AND archived = 0",
+		title, description, id,
+	)
+	return err
+}
+
 // DeletePlan removes a plan and all its tasks.
 func (db *DB) DeletePlan(id int64) error {
 	db.conn.Exec("DELETE FROM tasks WHERE plan_id = ?", id)

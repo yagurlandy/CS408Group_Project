@@ -109,6 +109,26 @@ func TestDeletePlanAlsoDeletesTasks(t *testing.T) {
 	}
 }
 
+func TestUpdatePlan(t *testing.T) {
+	db := newTestDB(t)
+
+	id, _ := db.CreatePlan("Original Plan", "Original description")
+
+	if err := db.UpdatePlan(id, "Updated Plan", "Updated description"); err != nil {
+		t.Fatalf("UpdatePlan: %v", err)
+	}
+
+	plan, _ := db.GetPlanByID(id)
+
+	if plan.Title != "Updated Plan" {
+		t.Errorf("title = %q, want %q", plan.Title, "Updated Plan")
+	}
+
+	if plan.Description != "Updated description" {
+		t.Errorf("description = %q, want %q", plan.Description, "Updated description")
+	}
+}
+
 // ─── Task tests ───────────────────────────────────────────────────────────────
 
 func TestCreateAndGetTask(t *testing.T) {
