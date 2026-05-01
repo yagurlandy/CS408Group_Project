@@ -22,6 +22,7 @@ app/data/*.sqlite
 app/data/*.db
 app/data/*.sqlite-shm
 app/data/*.sqlite-wal
+app/test-data/*.sqlite
 
 # keep folder, ignore contents if needed
 !app/data/.gitkeep

@@ -47,13 +47,19 @@ func csrfMiddleware(next http.Handler) http.Handler {
 				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 				return
 			}
-			http.SetCookie(w, &http.Cookie{
+			cookie := &http.Cookie{
 				Name:     csrfCookieName,
 				Value:    token,
 				Path:     "/",
 				HttpOnly: false,
 				SameSite: http.SameSiteLaxMode,
-			})
+			}
+
+			http.SetCookie(w, cookie)
+
+			// Make the new token available during this same request.
+			// Without this, the first page load renders an empty hidden _csrf field.
+			r.AddCookie(cookie)
 		}
 
 		if r.Method == http.MethodPost {
